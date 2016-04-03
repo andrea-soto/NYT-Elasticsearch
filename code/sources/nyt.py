@@ -27,7 +27,7 @@ class IngestNYT:
         # Elasticsearch (es) variables
         self.elasticsearch = 'http://%s:%s/nyt/'%(self.host, self.port)
         self.total = 0
-        self.count = {'Article': 0, 'Blog': 0}
+        self.count = {}
     
     def start_collection(self):
         '''Start main collection process'''
@@ -116,7 +116,7 @@ class IngestNYT:
         except:
             item_type = "Article"
         
-        doc_id = str(self.count[item_type] + 1)
+        doc_id = str(self.count.setdefault(item_type,0) + 1)
         
         url = self.elasticsearch + item_type + "/" + doc_id
 
