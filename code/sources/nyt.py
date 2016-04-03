@@ -110,7 +110,11 @@ class IngestNYT:
     def __write(self, document):
         '''Wite document to elasticsearch'''
         
-        url = self.elasticsearch + document['item_type']
+        try:
+            url = self.elasticsearch + document['item_type']
+        except:
+            url = self.elasticsearch + "Article"
+            
         item = json.dumps(document)
         response = requests.post(url, data=item)
         
