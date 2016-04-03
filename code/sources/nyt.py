@@ -27,6 +27,7 @@ class IngestNYT:
         # Elasticsearch (es) variables
         self.elasticsearch = 'http://%s:%s/nyt/'%(self.host, self.port)
         self.total = 0
+        self.count = {'Article': 0, 'Blog': 0}
     
     def start_collection(self):
         '''Start main collection process'''
@@ -100,7 +101,7 @@ class IngestNYT:
         # Get full text content of article
         clean_url = document['url'].replace('\\', '')
         response = requests.get(clean_url)
-        soup = BeautifulSoup(response.text)        
+        soup = BeautifulSoup(response.text, 'html.parser')        
         text = '\n'.join(p.text for p in soup.find_all("p", class_="story-body-text"))
         
         # Add text to document        
@@ -111,19 +112,24 @@ class IngestNYT:
         '''Wite document to elasticsearch'''
         
         try:
-            url = self.elasticsearch + document['item_type']
+            item_type = document['item_type']
         except:
-            url = self.elasticsearch + "Article"
-            
+            item_type = "Article"
+        
+        doc_id = str(self.count[item_type] + 1)
+        
+        url = self.elasticsearch + item_type + "/" + doc_id
+
         item = json.dumps(document)
         response = requests.post(url, data=item)
         
         if response.status_code == 201:
             self.total += 1
+            self.count[item_type] += 1
             if (self.total % 25) <> 0:
                 sys.stdout.write('.') # write a record indicator to stdout
                 sys.stdout.flush()
             else:
-                print '|\t{:,}'.format(self.total)
+                print '|\tTotal: {:,}, Articles: {:,}, Blogs: {:,}'.format(self.total, self.count['Article'], self.count['Blog'])
         else:
             print ("--- FAIL TO WRITE---")
