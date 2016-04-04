@@ -26,8 +26,9 @@ class IngestNYT:
         
         # Elasticsearch (es) variables
         self.elasticsearch = 'http://%s:%s/nyt/'%(self.host, self.port)
-        self.total = 0
-        self.count = {}
+        self.total = 27270
+        self.count = {"Article": 23760, "Video": 2400, "Blog": 967, "Interactive": 94, "Slideshow": 49}
+
     
     def start_collection(self):
         '''Start main collection process'''
@@ -46,19 +47,21 @@ class IngestNYT:
         if results == None:
             pass
         else:
-            if self.firstCall == True:
+            '''if self.firstCall == True:
                 self.offset = self.docsPerPage * (self.ndocs / self.docsPerPage)
-                self.firstCall = False
+                self.firstCall = False'''
                 
-            self.offset -= self.docsPerPage
-            if self.offset < 0:
-                self.offset = 10000
+            self.offset += self.docsPerPage
+            if self.offset > self.ndocs:
+                self.offset = 0
             
             for doc in results:
+                already_exists = self.__exists(doc)
+                
                 if doc['url'] in self.seen:
                     # Document already seen and added to index
                     pass
-                else:
+                if already_exists <> None:
                     # Add document to list of previously seen documents
                     self.seen.add(doc['url'])
                     # Format document to be added to index
@@ -78,7 +81,7 @@ class IngestNYT:
         url = 'http://api.nytimes.com/svc/news/v3/content/nyt/all/.json?offset=%d&api-key=%s'%(offset, self.api_key)
         response = requests.get(url)
         if response.status_code <> 200:
-            print "--- ERROR ---"
+            print "--- ERROR in API CALL ---"
             print response.status_code
             #print response.headers
             print "Start 6h sleep at:\t",datetime.datetime.now().ctime()
@@ -89,6 +92,28 @@ class IngestNYT:
             self.ndocs = response.json()['num_results']
             return response.json()['results']
 
+    def __exists(self, document):
+        if document['url'] in self.seen:
+            return 1
+        else:
+            query = {"query": { "match_phrase": { "url": document['url'] } }, "_source": ["_id", "url"]}
+            query = json.dumps(query)
+            
+            url = self.elasticsearch + "_search"
+            response = requests.post(url, data=query)
+            
+            if response.status_code == 200:
+                if response.json()['hits']['total'] >= 1:
+                    return 1
+                else:
+                    return None
+            else:
+                print "--- ERROR in EXISTS ---"
+                print response.status_code
+                print document['url'] 
+                return None
+
+        
     def __parse(self, data):
         '''Parse documents for storage'''        
         # Remove fields not wanted in storage
@@ -130,6 +155,7 @@ class IngestNYT:
                 sys.stdout.write('.') # write a record indicator to stdout
                 sys.stdout.flush()
             else:
-                print '|\tTotal: {:,}, Articles: {:,}, Blogs: {:,}'.format(self.total, self.count['Article'], self.count['Blog'])
+                other = self.total - self.count['Article'] - self.count['Blog']
+                print '|\tTotal: {:,}, Articles: {:,}, Blogs: {:,}, Other: {:,}'.format(self.total, self.count['Article'], self.count['Blog'], other)
         else:
             print ("--- FAIL TO WRITE---")
