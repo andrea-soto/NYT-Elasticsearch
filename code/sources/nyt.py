@@ -17,8 +17,6 @@ class IngestNYT:
         
         # NYT Newswire API variables
         self.dayRateLimit = 5000
-        self.cntCalls = 0
-        self.firstCall = True
         self.docsPerPage = 20
         self.ndocs = None
         self.offset = 0
@@ -26,8 +24,8 @@ class IngestNYT:
         
         # Elasticsearch (es) variables
         self.elasticsearch = 'http://%s:%s/nytimes/'%(self.host, self.port)
-        self.total = 27270
-        self.count = {"Article": 23760, "Video": 2400, "Blog": 967, "Interactive": 94, "Slideshow": 49}
+        self.total = 0
+        self.count = {}
 
     
     def start_collection(self):
@@ -47,10 +45,7 @@ class IngestNYT:
         if results == None:
             pass
         else:
-            '''if self.firstCall == True:
-                self.offset = self.docsPerPage * (self.ndocs / self.docsPerPage)
-                self.firstCall = False'''
-                
+            # Increase offset for NYT API
             self.offset += self.docsPerPage
             if self.offset > self.ndocs:
                 self.offset = 0
@@ -95,7 +90,7 @@ class IngestNYT:
     def __exists(self, document):
         if document['url'] in self.seen:
             return True
-        else:
+        elif self.total > 0:
             query = {"query": { "match_phrase": { "url": document['url'] } }, "_source": ["_id", "url"]}
             query = json.dumps(query)
             
@@ -112,6 +107,8 @@ class IngestNYT:
                 print response.status_code
                 print document['url'] 
                 return True
+        else:
+            return False
 
         
     def __parse(self, data):
