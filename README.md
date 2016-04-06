@@ -31,7 +31,7 @@ Elasticsearch can be queried to produce interesting summaries. Below I used the 
 
 ## 5 Elasticsearch Queries
 
-- For query results see [Notebook](.Elasticsearch Queries.ipynb)
+- For query results see [Notebook](./Elasticsearch Queries.ipynb)
 - For remote queries, change 'localhost' for ip address of remote server
 
 ### Query 1 : Count Documents by Index Type (Article, Blog, Interactive, Slideshare, or Video)
