@@ -25,7 +25,7 @@ class IngestNYT:
         self.seen = set()
         
         # Elasticsearch (es) variables
-        self.elasticsearch = 'http://%s:%s/nyt/'%(self.host, self.port)
+        self.elasticsearch = 'http://%s:%s/nytimes/'%(self.host, self.port)
         self.total = 27270
         self.count = {"Article": 23760, "Video": 2400, "Blog": 967, "Interactive": 94, "Slideshow": 49}
 
@@ -58,10 +58,10 @@ class IngestNYT:
             for doc in results:
                 already_exists = self.__exists(doc)
                 
-                if doc['url'] in self.seen:
+                if already_exists == True:
                     # Document already seen and added to index
                     pass
-                if already_exists <> None:
+                else:
                     # Add document to list of previously seen documents
                     self.seen.add(doc['url'])
                     # Format document to be added to index
@@ -94,7 +94,7 @@ class IngestNYT:
 
     def __exists(self, document):
         if document['url'] in self.seen:
-            return 1
+            return True
         else:
             query = {"query": { "match_phrase": { "url": document['url'] } }, "_source": ["_id", "url"]}
             query = json.dumps(query)
@@ -104,14 +104,14 @@ class IngestNYT:
             
             if response.status_code == 200:
                 if response.json()['hits']['total'] >= 1:
-                    return 1
+                    return True
                 else:
-                    return None
+                    return False
             else:
                 print "--- ERROR in EXISTS ---"
                 print response.status_code
                 print document['url'] 
-                return None
+                return True
 
         
     def __parse(self, data):
