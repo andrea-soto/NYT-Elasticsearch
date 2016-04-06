@@ -38,7 +38,7 @@ class IngestNYT:
     
     
     # 5000 call per day (seconds per day = 24h*60min*60sec = 86400)
-    @ratelim.greedy(5000, 86400)    
+    @ratelim.greedy(5000, 86400)
     def __run(self):
         '''Wrapper for collection process to stay within daily rate limit'''
         
